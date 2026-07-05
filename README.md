@@ -10,10 +10,17 @@ can't:
 1. **Build sync bundles** — scans a notes address via the
    [mempool.space](https://mempool.space) API (mainnet / testnet4 /
    signet): UTXOs, full transaction history (paginated), OP_RETURN
-   payloads, fee tiers, BTC price and the endpoint's relay policy —
-   packaged as a `bundle.json` the device imports.
-2. **Broadcast** the signed `.hex` transactions the device exports —
-   reject reasons are surfaced verbatim.
+   payloads, fee tiers and BTC price — packaged as a `bundle.json`
+   download or shown as a **QR (static, or animated UR for big
+   bundles)** that the device's scanner reads directly.
+2. **Broadcast** the transactions the device signs — drop the exported
+   `.hex` files, paste hex, or **scan the tx QR off the device's screen
+   with the camera**; reject reasons are surfaced verbatim.
+
+Vendored libraries: [jsQR](https://github.com/cozmo/jsQR) (Apache-2.0),
+[qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator)
+(MIT); `ur.js` is a minimal hand-rolled BC-UR encoder, byte-verified
+against the `foundation-ur` crate the device runs.
 
 No keys ever touch this page. Bundles contain only public chain data;
 the transactions it broadcasts are already signed and final.
