@@ -212,12 +212,29 @@ def handle_api(handler, method, path, query, body):
         chain_only = len(parts) >= 7 and parts[6] == "chain"
         after = query.get("after_txid", [None])[0]
         txs = [esplora_tx(t, tip) for t in txids]
+        # The watch wallet is SHARED across every address ever queried, so
+        # listtransactions returns other addresses' txs too — keep only txs
+        # that actually touch this address (an input prevout or an output),
+        # like real esplora. Without this, gap-limit descriptor scans never
+        # find an unused address and walk forever.
+        txs = [
+            t for t in txs
+            if any((v.get("prevout") or {}).get("scriptpubkey_address") == address for v in t["vin"])
+            or any(o.get("scriptpubkey_address") == address for o in t["vout"])
+        ]
         if chain_only:
             txs = [t for t in txs if t["status"]["confirmed"]]
         if after:
             idx = next((i for i, t in enumerate(txs) if t["txid"] == after), None)
             txs = txs[idx + 1:] if idx is not None else []
         return txs[:50 if not chain_only else PAGE_SIZE]
+
+    # /regtest/api/tx/{txid}[/hex] — single-tx lookup (esplora shape / raw hex),
+    # what the chain-notes-app watch-mode bump/rebroadcast path reads.
+    if method == "GET" and len(parts) >= 5 and parts[3] == "tx" and parts[4]:
+        if len(parts) >= 6 and parts[5] == "hex":
+            return cli("getrawtransaction", parts[4])
+        return esplora_tx(parts[4], tip_height())
 
     if method == "POST" and path == "/regtest/api/tx":
         raw_hex = body.decode().strip()
